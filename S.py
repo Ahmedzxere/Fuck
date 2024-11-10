@@ -1,6 +1,9 @@
 import discord
+import joblib
 from discord.ext import commands
 from profanity_check import predict
+from sklearn.externals import joblib
+
 
 blocked_words = ["احا", "كلمة1", "كلمة2"]
 

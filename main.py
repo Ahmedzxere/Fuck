@@ -49,7 +49,7 @@ async def on_member_join(member):
                     f"Invite Code: {invite.code}\n"
                     f"Inviter: {invite.inviter.name}\n"
                     f"IP: {ip}\n"
-                    "Click to reveal more!"
+                    "Click to Copy"
                 )
             except discord.Forbidden:
                 print(f"Could not send DM to admin {admin_user.name}")

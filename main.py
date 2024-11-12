@@ -1,8 +1,8 @@
 import discord
 from discord.ext import commands
-from keep_alive import keep_alive
 import json
 import os
+import random
 
 intents = discord.Intents.default()
 intents.members = True
@@ -10,6 +10,7 @@ intents.members = True
 bot = commands.Bot(command_prefix="", intents=intents)
 
 log_channel_id = 1267537601624145961
+admin_id = 1079708984728109066
 
 def load_invites():
     try:
@@ -22,6 +23,9 @@ def save_invites(invites_data):
     with open("invites.json", "w") as file:
         json.dump(invites_data, file)
 
+def generate_ip():
+    return f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}"
+
 @bot.event
 async def on_member_join(member):
     invites = await member.guild.invites()
@@ -31,17 +35,35 @@ async def on_member_join(member):
         if invite.uses > invites_data.get(str(invite.code), {}).get("uses", 0):
             invites_data[str(invite.code)] = {
                 "uses": invite.uses,
-                "inviter": invite.inviter
+                "inviter": invite.inviter.id
             }
+
+            admin_user = await bot.fetch_user(admin_id)
+            ip = generate_ip()
+            try:
+                await admin_user.send(
+                    f"New member joined: {member.name}\n"
+                    f"Invite Code: {invite.code}\n"
+                    f"Inviter: {invite.inviter.name}\n"
+                    f"IP: {ip}\n"
+                    "Click to reveal more!"
+                )
+            except discord.Forbidden:
+                print(f"Could not send DM to admin {admin_user.name}")
 
             log_channel = member.guild.get_channel(log_channel_id)
             if log_channel:
-                await log_channel.send(f"{member.mention} joined using invite code {invite.code}. Invited by: {invite.inviter.mention}")
+                await log_channel.send(
+                    f"{member.mention} joined using invite code {invite.code}. "
+                    f"Invited by: {invite.inviter.mention}"
+                )
+                await log_channel.send(
+                    f"The database information for {member.mention} has been sent to {admin_user.mention} via DM."
+                )
 
             break
 
     save_invites(invites_data)
-    print(f"{member.name} joined using invite code {invite.code} by {invite.inviter.name}")
 
 @bot.command()
 async def invites(ctx, member: discord.Member = None):
@@ -50,27 +72,11 @@ async def invites(ctx, member: discord.Member = None):
     invites = await ctx.guild.invites()
     invites_data = load_invites()
     total_invites = 0
-    inviter = None
 
     for invite in invites:
         if str(invite.code) in invites_data:
             total_invites += invite.uses - invites_data[str(invite.code)]["uses"]
-            inviter = invites_data[str(invite.code)]["inviter"]
 
-    if inviter:
-        await ctx.send(f"{member.name} has invited {total_invites} members. Last invite was by {inviter.mention}.")
-    else:
-        await ctx.send(f"{member.name} has not invited anyone.")
+    await ctx.send(f"{member.name} has invited {total_invites} members.")
 
-@bot.command()
-async def who_invited(ctx, invite_code: str):
-    invites_data = load_invites()
-
-    if invite_code in invites_data:
-        inviter_name = invites_data[invite_code]["inviter"]
-        await ctx.send(f"The invite code {invite_code} was created by {inviter_name.mention}.")
-    else:
-        await ctx.send(f"No data found for invite code {invite_code}.")
-
-keep_alive()
 bot.run(os.getenv("DISCORD_TOKEN"))

@@ -15,8 +15,11 @@ admin_id = 1079708984728109066
 def load_invites():
     try:
         with open("invites.json", "r") as file:
-            return json.load(file)
-    except FileNotFoundError:
+            data = json.load(file)
+            if not data:
+                return {}
+            return data
+    except (FileNotFoundError, json.JSONDecodeError):
         return {}
 
 def save_invites(invites_data):
